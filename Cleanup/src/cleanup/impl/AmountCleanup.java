@@ -9,21 +9,29 @@ import java.util.stream.Collectors;
 
 public class AmountCleanup implements Cleanup {
 	
-	private static final Pattern PATTERN = Pattern.compile("amount (name|date) (asc|desc)? [0-9]+");
+	private static final Pattern PATTERN = Pattern.compile("amount (name|date)?( asc| desc)? ([0-9]+)");
 	
 	private final String operation;
 	private final boolean desc;
 	private final int amount;
 	
 	public AmountCleanup(String line) {
-		Matcher m = PATTERN.matcher(line);
+		Matcher m = PATTERN.matcher(line.trim());
 		if (m.matches()) {
-			operation = m.group(1);
+			operation = getOperation(m.group(1));
 			desc = !"asc".equals(m.group(2));
 			amount = Integer.parseInt(m.group(3));
 		} else {
 			throw new IllegalArgumentException();
 		}
+	}
+	
+	private String getOperation(String oper) {
+		String ret = oper;
+		if (oper == null || oper.length() == 0) {
+			ret = "date";
+		}
+		return ret;
 	}
 
 	@Override
@@ -32,6 +40,7 @@ public class AmountCleanup implements Cleanup {
 		
 		List<File> tmp = Arrays.asList(root.listFiles()).stream()
 			.filter(f -> f.isFile())
+			.filter(f -> !f.getName().startsWith("."))
 			.sorted((f1, f2) -> compare(f1, f2))
 			.collect(Collectors.toList());
 		

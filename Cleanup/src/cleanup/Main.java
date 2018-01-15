@@ -6,7 +6,6 @@ import java.util.Arrays;
 
 public class Main {
 	
-	private static final File NULLFILE = new File("/tmp");
 	private static final String HELP = 
 			  "This tool cleans up a folder, or a list hierarchy of folders\n"
 			+ "by deleting the files in the directory based on the rules set\n"
@@ -28,28 +27,30 @@ public class Main {
 			+ "# that must be set is the amount part, thus falling back to the default behaviour and\n"
 			+ "# removes files older than the number of days entered.\n"
 			+ "# The following line removes files accessed more than five days ago.\n"
-			+ "#date 5\n"
+			+ "#type=date 5\n"
 			+ "#\n"
 			+ "# The following line is the same as the previous.\n"
-			+ "#date access +5d"
+			+ "#type=date access +5d"
 			+ "#\n"
-			+ "# This is the regex format of the command: date (create|edit|access)? ([+-]?)([0-9]+)([shmdwMy])\n\n"
+			+ "# This is the regex format of the command: date( create| edit| access)? ([+-]?)([0-9]+)([smhdwMy])?\n\n"
 			+ "# The second way of deleting files is limiting the amount of files. In that case the\n"
 			+ "# sorting of the files is done either by the name or by the 'lastModified' value. You\n"
 			+ "# can also specify the sorting order (default is desc).\n"
 			+ "#\n"
 			+ "# The following line limits the number of files in the folder to the newest five.\n"
-			+ "#amount date 5\n"
-			+ "# The regex of the rule is: amount (name|date) (asc|desc)? [0-9]+";
+			+ "#type=amount date 5\n"
+			+ "# The regex of the rule is: amount (name|date)?( asc| desc)? [0-9]+";
 	
 	private final String [] ARGS;
 	
 	private Boolean isRecoursive = null;
 	private Boolean isListing = null;
-	private File folder = NULLFILE;
+	private File folder = null;
 	
 	private Main(String [] args) {
 		this.ARGS = args;
+		
+		getFolder();
 		
 		switch(getAction()) {
 		case CLEAN: 		performCleanup(); 		break;
@@ -79,9 +80,12 @@ public class Main {
 			System.err.println("Error when creating sample configuration file.");
 		}
 		if (isRecoursive()) {
-			Arrays.asList(configFile.listFiles()).stream()
-				.filter(f -> f.isDirectory())
-				.forEach(f -> generateConfigFile(f));
+			File [] files = root.listFiles();
+			if (files != null) {
+				Arrays.asList(files).stream()
+					.filter(f -> f != null && f.isDirectory())
+					.forEach(f -> generateConfigFile(f));
+			}
 		}
 	}
 	
@@ -108,22 +112,30 @@ public class Main {
 	}
 	
 	private File getFolder() {
-		if (folder == NULLFILE) {
+		if (folder == null) {
 			if (ARGS.length > 0) {
-				folder = new File(ARGS[ARGS.length - 1]);
+				String line = ARGS[ARGS.length - 1];
+				if (!line.startsWith("-")) {
+					folder = new File(line);
+				} else {
+					folder = new File(".");
+				}
 			} else {
-				folder = null;
+				folder = new File(".");
 			}
 		}
 		return folder;
 	}
 	
 	private boolean containsSwitch(String switchValue) {
-		boolean ret = false;
 		if (switchValue != null) {
-			ret = Arrays.asList(ARGS).stream().filter(t -> switchValue.equals(t)).count() > 0;
+			for (String it : ARGS) {
+				if (switchValue.equals(it)) {
+					return true;
+				}
+			}
 		}
-		return ret;
+		return false;
 	}
 	
 	private Action getAction() {

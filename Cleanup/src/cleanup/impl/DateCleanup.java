@@ -16,12 +16,12 @@ public class DateCleanup implements Cleanup {
 	
 	private static final Map<String, Long> MULTIPLIERS = new HashMap<>();
 	
-	private static final Pattern PATTERN = Pattern.compile("date (create|edit|access)? ([+-]?)([0-9]+)([shmdwMy])");
+	private static final Pattern PATTERN = Pattern.compile("date( create| edit| access)? ([+-]?)([0-9]+)([shmdwMy])?");
 	
 	static {
 		MULTIPLIERS.put("s", 1000L);
-		MULTIPLIERS.put("h", 60L * 1000L);
-		MULTIPLIERS.put("m", 60L * 60L * 1000L);
+		MULTIPLIERS.put("m", 60L * 1000L);
+		MULTIPLIERS.put("h", 60L * 60L * 1000L);
 		MULTIPLIERS.put("d", 24L * 60L * 60L * 1000L);
 		MULTIPLIERS.put("w", 7L * 24L * 60L * 60L * 1000L);
 		MULTIPLIERS.put("M", 30L * 24L * 60L * 60L * 1000L);
@@ -54,7 +54,7 @@ public class DateCleanup implements Cleanup {
 	
 	private String getAccessType(String param) {
 		String ret = param;
-		if (ret.length() == 0) {
+		if (ret == null || ret.length() == 0) {
 			ret = "create";
 		}
 		return ret;
@@ -76,6 +76,7 @@ public class DateCleanup implements Cleanup {
 		
 		Arrays.asList(root.listFiles()).stream()
 			.filter(f -> f.isFile())
+			.filter(f -> !f.getName().startsWith("."))
 			.filter(f -> shouldBeDeleted(getConfiguredDate(f), amount))
 			.forEach(f -> {
 				deletedFiles.add(f); 
